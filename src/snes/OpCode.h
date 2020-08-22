@@ -16,7 +16,12 @@
  */
 typedef enum SnesInstructionOpCode
 {
-	OpCode_Break = 0x00, /* Break */
+	/**
+	 * Official name: BRK
+	 * Software interrupt
+	 * @see http://6502.org/tutorials/65c816opcodes.html#6.3.1
+	 */
+	OpCode_Break = 0x00,
 
 #if 0 /* Not implemented */
 	ORA = 0x01, /* OR Accumulator with Memory */

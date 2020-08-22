@@ -8,6 +8,7 @@
 #include "../common/Stack/Stack.h"
 
 #include "AddressingMode.h"
+#include "callbacks.h"
 #include "Flag.h"
 #include "OpCode.h"
 #include "RegisterName.h"
@@ -16,57 +17,88 @@
 
 
 /** TODO: OpCode.h -> rename opcodes to be unique */
-/** TODO: Emulator.c::__callbackBreak() -> stack usage */
-/** TODO: Emulator.c::__initInstructions() -> store instructions and make callbacks */
+/** TODO: callbacks.c::snesCallback_Break() -> stack usage */
+/** TODO: emulator.c::createInstructions() -> add innstructions */
+/** TODO: emulator.c::createCallbacks() -> add callbacks */
 
 
-
-/** 
- * Creates the instructions for the 65c618 chip
- * 
- * @return - instructions set of the SNES
- */
-static Instruction ** createSnesProcessorInstructions(void);
 
 
 /**
  * Creates the registers of the 65c618 chip
  * 
- * @return - the registers set of the SNES processor
+ * @see ../common/Processor/Register.h for definition
+ * @see ../common/Processor/Processor.h for usage
+ * 
+ * @return - the registers set of the SNES processor, or NULL if allocation failed
  */
-static Register ** createSnesProcessorRegisters(void);
+static Register ** createRegisters(void);
 
 
 /**
  * Creates the flags register of the 65c618 chip
  * 
- * @return - the flags register of the SNES processor
+ * @see ../common/Processor/Register.h for definition
+ * @see ../common/Processor/Processor.h for usage
+ * @see Flag.h for stored content definition
+ * 
+ * @return - the flags register of the SNES processor, or NULL if allocation failed
  */
-static Register * createSnesProcessorFlagsRegister(void);
+static Register * createFlagsRegisters(void);
 
 
 /**
  * Creates a 65c618 chip and returns it
  * 
- * @return - the processor of the SNES
+ * @see ../common/Processor/Processor.h for definition
+ * @see ../common/Emulator.h for usage
+ * 
+ * @return - the processor of the SNES, , or NULL if any required allocation failed
  */
-static Processor * createSnesProcessor(void);
+static Processor * createProcessor(void);
 
 
 /**
  * Creates a SNES emulator and returns it
  * 
- * @return - the created SNES emulator, or NULL of any allocation failed
+ * @see ../common/Emulator.h for definition
+ * 
+ * @return - the created SNES emulator, or NULL of any required allocation failed
  */
-static Emulator * createSnesEmulator(void);
+static Emulator * createEmulator(void);
 
 
 /**
  * Deletes the SNES emulator and sets it to NULL
  * 
+ * @see ../common/Emulator.h for definition
+ * 
  * @param emulator - the emulator to delete
  */
-static void deleteSnesEmulator(Emulator ** emulator);
+static void deleteEmulator(Emulator ** emulator);
+
+
+/** 
+ * Creates the instructions for the 65c618 chip
+ * 
+ * @see ../common/Processor/Instruction.h for definition
+ * @see ../common/Processor/Processor.h for usage
+ * 
+ * @return - the instructions set of the SNES processor, or NULL if allocatail failed
+ */
+static Instruction ** createInstructions(void);
+
+
+/**
+ * Creates the callbacks array for the 65c618 chip
+ * 
+ * @see callbacks.h for callbacks definitions
+ * @see ../common/Emulator.h for usage
+ * 
+ * @return - array of function pointers, where each entry is a callback for a SNES instruction, or NULL if allocation failed
+ */
+static void (** createCallbacks(void))(Emulator *);
+
 
 
 
@@ -75,9 +107,9 @@ int main(void)
 {
 	Emulator * emulator;
 
-	emulator = createSnesEmulator();
+	emulator = createEmulator();
 	fprintf(stdout, "SNES emulator running...\n");
-	deleteSnesEmulator(& emulator);
+	deleteEmulator(& emulator);
 
 
 	return EXIT_SUCCESS;
@@ -86,29 +118,7 @@ int main(void)
 
 
 
-static Instruction ** createSnesProcessorInstructions(void)
-{
-	Instruction ** instructions;
-
-	instructions = malloc(sizeof(* instructions) * OpCode_Count);
-	if (NULL == instructions) {
-		fprintf(stderr, "Memory allocation failed for SNES instruction table\n");
-		return NULL;
-	}
-
-	instructions[OpCode_Break] = Instruction_create(
-		OpCode_Break, 
-		AddressingMode_Implied,
-		Flag_DisableIRQ | Flag_Decimal, 
-		2,
-		8
-	);
-
-	return instructions;
-}
-
-
-static Register ** createSnesProcessorRegisters(void)
+static Register ** createRegisters(void)
 {
 	Register ** registers;
 
@@ -131,31 +141,31 @@ static Register ** createSnesProcessorRegisters(void)
 }
 
 
-static Register * createSnesProcessorFlagsRegister(void)
+static Register * createFlagsRegisters(void)
 {
 	return Register_create(Register_ProcessorStatus, 8);
 }
 
 
-static Processor * createSnesProcessor(void)
+static Processor * createProcessor(void)
 {
 	Instruction ** instructions;
 	Register ** registers;
 	Register * flags;
 
-	instructions = createSnesProcessorInstructions();
+	instructions = createInstructions();
 	if (NULL == instructions) {
 		return NULL;
 	}
 
-	registers = createSnesProcessorRegisters();
+	registers = createRegisters();
 	if (NULL == registers) {
 		free(instructions);
 		* instructions = NULL;
 		return NULL;
 	}
 
-	flags = createSnesProcessorFlagsRegister();
+	flags = createFlagsRegisters();
 	if (NULL == flags) {
 		free(instructions);
 		* instructions = NULL;
@@ -168,30 +178,65 @@ static Processor * createSnesProcessor(void)
 }
 
 
-static Emulator * createSnesEmulator(void)
+static Emulator * createEmulator(void)
 {
 	Processor * processor;
 	void (** callbacks)(Emulator *);
 
-	processor = createSnesProcessor();
+	processor = createProcessor();
 	if (NULL == processor) {
 		return NULL;
 	}
 
-	callbacks = NULL;
-	/* 
-		callbacks = createSnesInstructionsCallbacks();
-		if (NULL == callbacks) {
-			Processor_delete(& processor, OpCode_Count, Register_Count);
-			return NULL;
-		}
-	*/
-	
+	callbacks = createCallbacks();
+	if (NULL == callbacks) {
+		Processor_delete(& processor, OpCode_Count, Register_Count);
+		return NULL;
+	}
+
 	return Emulator_create(processor, callbacks);
 }
 
 
-static void deleteSnesEmulator(Emulator ** emulator)
+static void deleteEmulator(Emulator ** emulator)
 {
 	Emulator_delete(emulator, OpCode_Count, Register_Count);
+}
+
+
+static Instruction ** createInstructions(void)
+{
+	Instruction ** instructions;
+
+	instructions = malloc(sizeof(* instructions) * OpCode_Count);
+	if (NULL == instructions) {
+		fprintf(stderr, "Memory allocation failed for SNES instruction table\n");
+		return NULL;
+	}
+
+	instructions[OpCode_Break] = Instruction_create(
+		OpCode_Break, 
+		AddressingMode_Implied,
+		Flag_DisableIRQ | Flag_Decimal, 
+		2,
+		8
+	);
+
+	return instructions;
+}
+
+
+static void (** createCallbacks(void))(Emulator *)
+{
+	void (** callbacks)(Emulator *);
+
+	callbacks = malloc(sizeof(* callbacks) * OpCode_Count);
+	if (NULL == callbacks) {
+		fprintf(stderr, "Error: callbacks memory allocation failed\n");
+		return NULL;
+	}
+
+	callbacks[OpCode_Break] = snesCallback_Break;
+
+	return callbacks;
 }
