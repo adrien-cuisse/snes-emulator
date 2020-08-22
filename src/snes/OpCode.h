@@ -1,6 +1,6 @@
 
 /**
- * SNES opcodes header
+ * SNES intructions opcodes header
  * Informations extracted from https://wiki.superfamicom.org/65816-reference#toc-3
  */
 
@@ -14,7 +14,7 @@
 /**
  * OpCodes for the 65c816 chip
  */
-typedef enum OpCode
+typedef enum SnesInstructionOpCode
 {
 	OpCode_Break = 0x00, /* Break */
 
@@ -276,7 +276,7 @@ typedef enum OpCode
 	SBC = 0xFF, /* Subtract with Borrow from Accumulator */
 #endif /* Not implemented */
 
-	OpCodeCount
+	OpCode_Count
 } OpCode;
 
 

@@ -13,7 +13,7 @@
 /**
  * An addressing mode for instructions
  */
-typedef enum AddressingMode
+typedef enum SnesInstructionAddressingMode
 {
 	AddressingMode_Implied,
 	AddressingMode_ImmediateMemoryFlag,

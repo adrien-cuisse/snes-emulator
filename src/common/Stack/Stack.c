@@ -47,7 +47,7 @@ void Stack_delete(Stack ** this)
 	}
 
 	if (NULL == * this) {
-		return;
+		return; /* no warning intended, this is the end of the stack */
 	}
 
 	top = * this;

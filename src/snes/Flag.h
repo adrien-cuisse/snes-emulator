@@ -1,6 +1,6 @@
 
 /**
- * SNES flags header
+ * SNES processor's flags header
  * Informations extracted from http://6502.org/tutorials/65c816opcodes.html#4
  */
 
@@ -15,7 +15,7 @@
  * Flags for the 65c816 chip
  * Renamed for better reading, official names are in comment
  */
-typedef enum Flag
+typedef enum SnesProcessorFlag
 {
 	/* E = 0x??, 6502 emulation mode */
 	Flag_Carry = 0x01, /* C */
@@ -26,7 +26,9 @@ typedef enum Flag
 	Flag_Break = 0x10, /* B, emulation mode only */
 	Flag_AccumulatorSize = 0x20, /* M, accumulator register size (native mode only) (0 = 16-bit, 1 = 8-bit) */
 	Flag_Overflow = 0x40, /* V */
-	Flag_Negative = 0x80 /* N */
+	Flag_Negative = 0x80, /* N */
+
+	Flag_Count = 0x0A 
 } Flag;
 
 /*
